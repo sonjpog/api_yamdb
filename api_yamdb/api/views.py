@@ -7,7 +7,7 @@ from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
 from .serializers import (CategorySerializer,
                           GenreSerializer,
-                          TitleСhangeSerializer,
+                          TitleChangeSerializer,
                           TitleReadSerializer)
 
 
@@ -19,7 +19,7 @@ class TitlesViewSet(ModelViewSet):
 
     def get_serializer_class(self):
         if self.request.method in ('PATCH', 'POST'):
-            return TitleСhangeSerializer
+            return TitleChangeSerializer
         return TitleReadSerializer
 
 
