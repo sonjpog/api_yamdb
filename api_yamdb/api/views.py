@@ -1,9 +1,51 @@
-from rest_framework import viewsets, status, serializers as ser
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
-from reviews.models import Review, Titles
-from .serializers import ReviewSerializer
+from django.shortcuts import get_object_or_404
+
+from rest_framework import serializers as ser, status, viewsets
+from rest_framework.filters import SearchFilter
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
+
+from reviews.models import Category, Genre, Review, Title
+
+from .filters import TitleFilter
+from .mixins import BasicActionsViewSet
+from .serializers import (
+    CategorySerializer,
+    GenreSerializer,
+    ReviewSerializer,
+    TitleReadSerializer,
+    TitleChangeSerializer,
+)
+
+class TitlesViewSet(ModelViewSet):
+    """Получить список всех объектов."""
+    queryset = Title.objects.all()
+    serializer_class = TitleReadSerializer
+    filterset_class = TitleFilter
+
+    def get_serializer_class(self):
+        if self.request.method in ('PATCH', 'POST'):
+            return TitleChangeSerializer
+        return TitleReadSerializer
+
+
+class CategoryViewSet(BasicActionsViewSet):
+    """Получить список всех категорий."""
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    filter_backends = (SearchFilter, )
+    search_fields = ('name', )
+    lookup_field = 'slug'
+
+
+class GenreViewSet(BasicActionsViewSet):
+    """Получить список всех жанров."""
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    filter_backends = (SearchFilter,)
+    search_fields = ('name', )
+    lookup_field = 'slug'
 
 
 class MockUser:
