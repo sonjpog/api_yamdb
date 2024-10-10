@@ -2,15 +2,15 @@ from django.db import models
 
 from . import constants, validators
 
-
+    
 class UserPlaceholder(models.Model):
     username = models.CharField(max_length=255)
 
     def __str__(self):
         return self.username
 
-
-class Genre(models.Model):
+      
+ class Genre(models.Model):
     """Модель для Жанров."""
     name = models.CharField(
         max_length=constants.MAX_FIELD_LENGTH,
@@ -29,7 +29,7 @@ class Genre(models.Model):
     def __str__(self):
         return self.name
 
-
+      
 class Category(models.Model):
     """Модель для Категорий (типов) произведений."""
 
@@ -49,6 +49,8 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
 
 
 class Title(models.Model):

@@ -18,6 +18,7 @@ from .serializers import (
     TitleChangeSerializer,
 )
 
+
 class TitlesViewSet(ModelViewSet):
     """Получить список всех объектов."""
     queryset = Title.objects.all()

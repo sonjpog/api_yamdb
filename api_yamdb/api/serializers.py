@@ -45,8 +45,7 @@ class TitleChangeSerializer(serializers.ModelSerializer):
         fields = '__all__'
         model = Title
 
-
-
+        
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
@@ -58,3 +57,4 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
         read_only_fields = ('author',)
+
