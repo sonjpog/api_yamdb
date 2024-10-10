@@ -99,6 +99,7 @@ class Title(models.Model):
 
 
 class Review(models.Model):
+    """Модель для Отзывов."""
     title = models.ForeignKey(
         'Title',
         on_delete=models.CASCADE,
@@ -106,7 +107,7 @@ class Review(models.Model):
     )
     text = models.TextField()
     author = models.ForeignKey(
-        'UserPlaceholder',  # Заглушка для CustomUser
+        UserPlaceholder,  # Заглушка для CustomUser
         on_delete=models.CASCADE,
         related_name='reviews'
     )
@@ -132,3 +133,23 @@ class Review(models.Model):
             f'Привет, {self.author}!\n'
             f'Вы оставили отзыв на произведение {self.title}.'
         )
+
+
+class Comment(models.Model):
+    """Модель для Комментариев."""
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments')
+    author = models.ForeignKey(
+        UserPlaceholder,
+        on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self):
+        return self.text[:20]
