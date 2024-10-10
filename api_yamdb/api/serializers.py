@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Genre, Review, Title
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -44,3 +44,17 @@ class TitleChangeSerializer(serializers.ModelSerializer):
     class Meta:
         fields = '__all__'
         model = Title
+
+        
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        default=serializers.CurrentUserDefault()
+    )
+
+    class Meta:
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        model = Review
+        read_only_fields = ('author',)
+
