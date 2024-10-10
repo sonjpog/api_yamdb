@@ -6,12 +6,13 @@ from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from reviews.models import Category, Genre, Review, Title
+from reviews.models import Category, Comment, Genre, Review, Title
 
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
 from .serializers import (
     CategorySerializer,
+    CommentSerializer,
     GenreSerializer,
     ReviewSerializer,
     TitleReadSerializer,
@@ -108,3 +109,16 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = [MockPermission,]
+
+    def get_queryset(self):
+        review = self.kwargs.get('review_id')
+        return Comment.objects.filter(review=review)
+
+    def perform_create(self, serializer):
+        review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
+        serializer.save(author=self.request.user, review=review)
