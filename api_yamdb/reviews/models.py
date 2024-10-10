@@ -99,6 +99,7 @@ class Title(models.Model):
 
 
 class Review(models.Model):
+    """Модель для Отзывов."""
     title = models.ForeignKey(
         'Title',
         on_delete=models.CASCADE,
@@ -135,6 +136,7 @@ class Review(models.Model):
 
 
 class Comment(models.Model):
+    """Модель для Комментариев."""
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
@@ -144,6 +146,10 @@ class Comment(models.Model):
         on_delete=models.CASCADE)
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
 
     def __str__(self):
         return self.text[:20]
