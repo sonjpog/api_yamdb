@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers as ser, status, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -9,11 +10,13 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 import permissions
 from api.serializers import UserSerializer, TokenSerializer
-from reviews.models import Category, Genre, Review, Title
+from reviews.models import Category, Comment, Genre, Review, Title
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     CategorySerializer,
+    CommentSerializer,
     GenreSerializer,
     ReviewSerializer,
     TitleReadSerializer,
@@ -75,7 +78,11 @@ class UserProfileView(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def partial_update(self, request):
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer = UserSerializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -128,28 +135,9 @@ class GenreViewSet(BasicActionsViewSet):
     lookup_field = 'slug'
 
 
-class MockUser:
-    """Модель-заглушка для пользователя."""
-    def __init__(self, username='mockuser'):
-        self.username = username
-
-    @property
-    def is_authenticated(self):
-        return True
-
-
-class MockPermission:
-    """Заглушка для проверки прав доступа."""
-    def has_permission(self, request, view):
-        return True
-
-    def has_object_permission(self, request, view, obj):
-        return True
-
-
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = (MockPermission,)
+    permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly]
 
     def get_queryset(self):
         title_id = self.kwargs.get('title_id')
@@ -160,12 +148,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return get_object_or_404(Title, pk=title_id)
 
     def perform_create(self, serializer):
-        try:
-            # Используем MockUser вместо self.request.user
-            mock_user = MockUser()
-            serializer.save(author=mock_user, title=self.get_title())
-        except IntegrityError:
-            raise ser.ValidationError("Не удается создать повторяющийся отзыв.")
+        title = self.get_title()
+        user_review_exists = Review.objects.filter(
+            title=title,
+            author=self.request.user
+        ).exists()
+        if user_review_exists:
+            raise ValidationError("На одно произведение пользователь",
+                                  "может оставить только один отзыв.")
+        serializer.save(author=self.request.user, title=title)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -178,12 +169,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(
-            instance,
-            data=request.data,
-            partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly]
+
+    def get_queryset(self):
+        review_id = self.kwargs.get('review_id')
+        return Comment.objects.filter(review_id=review_id)
+
+    def perform_create(self, serializer):
+        review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
+        serializer.save(author=self.request.user, review=review)
