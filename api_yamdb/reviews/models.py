@@ -1,6 +1,26 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from . import constants, validators
+
+ROLES = [
+    ('user', 'User'),
+    ('moderator', 'Moderator'),
+    ('admin', 'Admin')
+]
+
+
+class User(AbstractUser):
+    """Модель пользователя."""
+    confirmation_code = models.CharField(max_length=6, blank=True, null=True)
+    role = models.CharField(max_length=20, choices=ROLES, default='user')
+    
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return self.username
 
 
 class UserPlaceholder(models.Model):
