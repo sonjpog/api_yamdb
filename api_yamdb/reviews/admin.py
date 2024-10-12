@@ -1,6 +1,16 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 
 from .models import Category, Comment, Genre, Review, Title, User
+
+from reviews.models import User
+
+UserAdmin.fieldsets += (
+    ('Extra Fields', {'fields': ('role',)}),
+)
+
+admin.site.register(User, UserAdmin)
+
 
 
 @admin.register(Category)
@@ -64,17 +74,17 @@ class TitleAdmin(admin.ModelAdmin):
     empty_value_display = '-пусто-'
 
 
-@admin.register(User)
-class UserAdmin(admin.ModelAdmin):
-    list_display = (
-        'username',
-        'email',
-        'role',
-        'bio',
-        'first_name',
-        'last_name',
-        'confirmation_code',
-    )
-    search_fields = ('username', 'role',)
-    list_filter = ('username',)
-    empty_value_display = '-пусто-'
+# @admin.register(User)
+# class UserAdmin(admin.ModelAdmin):
+#     list_display = (
+#         'username',
+#         'email',
+#         'role',
+#         'bio',
+#         'first_name',
+#         'last_name',
+#         'confirmation_code',
+#     )
+#     search_fields = ('username', 'role',)
+#     list_filter = ('username',)
+#     empty_value_display = '-пусто-'

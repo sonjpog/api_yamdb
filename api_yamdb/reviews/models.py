@@ -15,6 +15,7 @@ class User(AbstractUser):
     """Модель пользователя."""
     confirmation_code = models.CharField(max_length=6, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLES, default='user')
+    bio = models.TextField(blank=True, max_length=200)
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -82,7 +83,7 @@ class Title(models.Model):
 
     genre = models.ManyToManyField(
         'Genre',
-        through='GenreTitle',
+        #through='GenreTitle',
         related_name='titles',
         verbose_name='Жанр',
         help_text='Выберите жанры для произведения'
@@ -172,7 +173,7 @@ class Comment(models.Model):
         verbose_name='Автор'
     )
     text = models.TextField(verbose_name='Текст комментария')
-    created_at = models.DateTimeField(
+    pub_date = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Дата создания'
     )

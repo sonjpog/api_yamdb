@@ -7,13 +7,13 @@ from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
-import permissions
 from api.serializers import UserSerializer, TokenSerializer
 from reviews.models import Category, Comment, Genre, Review, Title
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
-from .permissions import IsAuthorOrReadOnly
+from .permissions import IsAuthorOrReadOnly, IsAdmin, IsModerator
 from .serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -30,7 +30,7 @@ class UserViewSet(viewsets.ViewSet):
     """CRUD операции."""
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAdmin]
+    permission_classes = [IsAdmin]
 
     def create(self, request):
         serializer = UserSerializer(data=request.data)
@@ -58,7 +58,7 @@ class UserViewSet(viewsets.ViewSet):
 
 class SignupViewSet(viewsets.ViewSet):
     """Регистрация пользователей."""
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
     def create(self, request):
         serializer = UserSerializer(data=request.data)
@@ -71,7 +71,7 @@ class SignupViewSet(viewsets.ViewSet):
 
 class UserProfileView(viewsets.ViewSet):
     """Профиль пользователя."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def retrieve(self, request):
         serializer = UserSerializer(request.user)
@@ -90,7 +90,7 @@ class UserProfileView(viewsets.ViewSet):
 
 class TokenViewSet(viewsets.ViewSet):
     """Выдача токенов."""
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
     def create(self, request):
         serializer = TokenSerializer(data=request.data)
@@ -137,7 +137,7 @@ class GenreViewSet(BasicActionsViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly]
+    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
 
     def get_queryset(self):
         title_id = self.kwargs.get('title_id')
@@ -174,7 +174,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly]
+    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
 
     def get_queryset(self):
         review_id = self.kwargs.get('review_id')
