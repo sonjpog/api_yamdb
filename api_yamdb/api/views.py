@@ -2,18 +2,18 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers as ser, status, viewsets
+from rest_framework import permissions
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import AccessToken
 
-import permissions
 from api.serializers import UserSerializer, TokenSerializer
 from reviews.models import Category, Comment, Genre, Review, Title
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
-from .permissions import IsAuthorOrReadOnly
+from .permissions import IsAdmin, IsAuthorOrReadOnly
 from .serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -30,7 +30,7 @@ class UserViewSet(viewsets.ViewSet):
     """CRUD операции."""
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAdmin]
+    permission_classes = [IsAdmin]
 
     def create(self, request):
         serializer = UserSerializer(data=request.data)
