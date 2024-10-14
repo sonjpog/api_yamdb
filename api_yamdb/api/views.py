@@ -137,7 +137,6 @@ class GenreViewSet(BasicActionsViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     """Создание отзывов."""
     serializer_class = ReviewSerializer
-
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
 
     def get_queryset(self):
