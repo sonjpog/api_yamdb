@@ -1,7 +1,5 @@
-import random
 from django.db.models import Avg
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title

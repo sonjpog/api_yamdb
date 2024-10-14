@@ -14,8 +14,9 @@ ROLES = [
 class User(AbstractUser):
     """Модель пользователя."""
     confirmation_code = models.CharField(max_length=6, blank=True, null=True)
-    role = models.CharField(max_length=20, choices=ROLES, default='user')
-    bio = models.TextField(max_length=200, blank=True)
+    role = models.CharField(max_length=constants.MAX_NAME_LENGHT,
+                            choices=ROLES, default='user')
+    bio = models.TextField(constants.MAX_FIELD_LENGTH, blank=True)
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -83,11 +84,9 @@ class Title(models.Model):
 
     genre = models.ManyToManyField(
         'Genre',
-        #through='GenreTitle',
         related_name='titles',
         verbose_name='Жанр',
         help_text='Выберите жанры для произведения'
-        # through='GenreTitle'
     )
 
     description = models.TextField(
