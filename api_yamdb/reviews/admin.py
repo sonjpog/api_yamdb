@@ -12,7 +12,6 @@ UserAdmin.fieldsets += (
 admin.site.register(User, UserAdmin)
 
 
-
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = (
@@ -72,19 +71,3 @@ class TitleAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     list_filter = ('name',)
     empty_value_display = '-пусто-'
-
-
-# @admin.register(User)
-# class UserAdmin(admin.ModelAdmin):
-#     list_display = (
-#         'username',
-#         'email',
-#         'role',
-#         'bio',
-#         'first_name',
-#         'last_name',
-#         'confirmation_code',
-#     )
-#     search_fields = ('username', 'role',)
-#     list_filter = ('username',)
-#     empty_value_display = '-пусто-'

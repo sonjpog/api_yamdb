@@ -1,38 +1,36 @@
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-from django.utils.crypto import get_random_string
-from django.db import IntegrityError
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
-from rest_framework import permissions
-from rest_framework.exceptions import ValidationError, PermissionDenied
+from django.utils.crypto import get_random_string
+from rest_framework import status, viewsets, filters
+from rest_framework.decorators import action
+from rest_framework.exceptions import (
+    PermissionDenied, ValidationError, MethodNotAllowed)
 from rest_framework.filters import SearchFilter
-from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
-from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly
 )
-from rest_framework.decorators import action
-from rest_framework import filters
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.viewsets import ModelViewSet
 
-from api.serializers import UserSerializer, TokenSerializer
-from reviews.models import Category, Comment, Genre, Review, Title
-from .filters import TitleFilter
-from .mixins import BasicActionsViewSet
-from .permissions import IsAdmin, IsAuthorOrReadOnly, IsModerator
-from .serializers import (
+from api.filters import TitleFilter
+from api.mixins import BasicActionsViewSet
+from api.permissions import IsAdmin, IsAuthorOrReadOnly
+from api.serializers import (
     CategorySerializer,
     CommentSerializer,
     GenreSerializer,
     ReviewSerializer,
     TitleReadSerializer,
     TitleChangeSerializer,
+    TokenSerializer,
+    UserSerializer
 )
+from reviews.models import Category, Comment, Genre, Review, Title
 
 User = get_user_model()
 
@@ -176,6 +174,11 @@ class CategoryViewSet(BasicActionsViewSet):
     search_fields = ('name', )
     lookup_field = 'slug'
 
+    def get_permissions(self):
+        if self.request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+            self.permission_classes = [IsAdmin]
+        return super().get_permissions()
+
 
 class GenreViewSet(BasicActionsViewSet):
     """Получить список всех жанров."""
@@ -184,6 +187,11 @@ class GenreViewSet(BasicActionsViewSet):
     filter_backends = (SearchFilter,)
     search_fields = ('name', )
     lookup_field = 'slug'
+
+    def get_permissions(self):
+        if self.request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+            self.permission_classes = [IsAdmin]
+        return super().get_permissions()
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

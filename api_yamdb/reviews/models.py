@@ -83,11 +83,9 @@ class Title(models.Model):
 
     genre = models.ManyToManyField(
         'Genre',
-        #through='GenreTitle',
         related_name='titles',
         verbose_name='Жанр',
         help_text='Выберите жанры для произведения'
-        # through='GenreTitle'
     )
 
     description = models.TextField(
