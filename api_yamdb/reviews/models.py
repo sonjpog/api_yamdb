@@ -15,7 +15,7 @@ class User(AbstractUser):
     """Модель пользователя."""
     confirmation_code = models.CharField(max_length=6, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLES, default='user')
-    bio = models.TextField(blank=True, max_length=200)
+    bio = models.TextField(max_length=200, blank=True)
 
     class Meta:
         verbose_name = 'Пользователь'
