@@ -87,6 +87,7 @@ class Title(models.Model):
         related_name='titles',
         verbose_name='Жанр',
         help_text='Выберите жанры для произведения'
+        # through='GenreTitle'
     )
 
     description = models.TextField(
