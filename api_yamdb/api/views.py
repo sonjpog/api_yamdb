@@ -135,9 +135,9 @@ class GenreViewSet(BasicActionsViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
+    """Создание отзывов."""
     serializer_class = ReviewSerializer
 
-    # Любой может просматривать отзывы, но на другие действия нужны права
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
 
     def get_queryset(self):
@@ -173,6 +173,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
+    """Создание комментариев."""
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
 
