@@ -7,10 +7,8 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        # Если запрос "безопасный" (например, GET), то разрешаем
         if request.method in permissions.SAFE_METHODS:
             return True
-        # Разрешаем изменение или удаление, если пользователь — автор, модератор или админ
         return obj.author == request.user or request.user.role in ['moderator', 'admin'] or request.user.is_staff
 
 
