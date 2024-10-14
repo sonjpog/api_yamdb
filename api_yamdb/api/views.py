@@ -190,6 +190,11 @@ class CategoryViewSet(BasicActionsViewSet):
     search_fields = ('name', )
     lookup_field = 'slug'
 
+    def get_permissions(self):
+        if self.request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+            self.permission_classes = [IsAdmin]
+        return super().get_permissions()
+
 
 class GenreViewSet(BasicActionsViewSet):
     """Получить список всех жанров."""
@@ -198,6 +203,11 @@ class GenreViewSet(BasicActionsViewSet):
     filter_backends = (SearchFilter,)
     search_fields = ('name', )
     lookup_field = 'slug'
+
+    def get_permissions(self):
+        if self.request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+            self.permission_classes = [IsAdmin]
+        return super().get_permissions()
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
