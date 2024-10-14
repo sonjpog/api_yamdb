@@ -10,7 +10,11 @@ from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import (
+    AllowAny,
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly
+)
 from rest_framework.decorators import action
 from rest_framework import filters
 from django_filters.rest_framework import DjangoFilterBackend
@@ -185,7 +189,14 @@ class GenreViewSet(BasicActionsViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     """Создание отзывов."""
     serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticatedOrReadOnly,
+                                  IsAuthorOrReadOnly]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         title_id = self.kwargs.get('title_id')
@@ -197,8 +208,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         title = self.get_title()
-        if Review.objects.filter(title=title, author=self.request.user).exists():
-            raise ValidationError("На одно произведение пользователь может оставить только один отзыв.")
+        if Review.objects.filter(title=title,
+                                 author=self.request.user).exists():
+            raise ValidationError("На одно произведение пользователь",
+                                  " может оставить только один отзыв.")
         serializer.save(author=self.request.user, title=title)
 
     def update(self, request, *args, **kwargs):
@@ -206,14 +219,19 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(instance,
+                                         data=request.data,
+                                         partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.author != request.user and not (request.user.is_staff or request.user.role in ['moderator', 'admin']):
+        if instance.author != request.user and not (
+            request.user.is_staff or request.user.role in [
+                'moderator',
+                'admin']):
             raise PermissionDenied("У вас нет прав на удаление этого отзыва.")
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -223,6 +241,14 @@ class CommentViewSet(viewsets.ModelViewSet):
     """Создание комментариев."""
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticatedOrReadOnly,
+                                  IsAuthorOrReadOnly]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         review_id = self.kwargs.get('review_id')
