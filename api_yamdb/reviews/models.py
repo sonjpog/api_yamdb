@@ -110,12 +110,6 @@ class Title(models.Model):
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
 
-    @property
-    def rating(self):
-        reviews = self.reviews.all()
-        total_score = sum(review.score for review in reviews)
-        return total_score // reviews.count() if reviews.exists() else 0
-
     def __str__(self):
         return self.name
 

@@ -1,9 +1,11 @@
 import random
+from django.db.models import Avg
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title
+from reviews.constants import MAX_FIELD_LENGTH
 
 User = get_user_model()
 
@@ -48,19 +50,29 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class TitleReadSerializer(serializers.ModelSerializer):
+    rating = serializers.SerializerMethodField(read_only=True)
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(
         read_only=True,
         many=True
     )
-    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         fields = '__all__'
         model = Title
 
+    def get_rating(self, obj):
+        reviews = obj.reviews.all()
+        if reviews.exists():
+            return reviews.aggregate(Avg('score'))['score__avg']
+        return None
+
 
 class TitleChangeSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(
+        max_length=MAX_FIELD_LENGTH,
+        allow_blank=False,
+    )
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
         slug_field='slug'
@@ -72,8 +84,21 @@ class TitleChangeSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        fields = '__all__'
         model = Title
+        fields = [
+            'id',
+            'name',
+            'year',
+            'genre',
+            'description',
+            'category',
+        ]
+
+    def validate_name(self, value):
+        if len(value) > 256:
+            raise serializers.ValidationError(
+                "Название произведения не может быть длиннее 256 символов.")
+        return value
 
 
 class ReviewSerializer(serializers.ModelSerializer):

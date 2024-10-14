@@ -1,14 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
-from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
+from django_filters import rest_framework
 from rest_framework import status, viewsets
-from rest_framework import permissions
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import (
     AllowAny,
@@ -24,7 +22,7 @@ from api.serializers import UserSerializer, TokenSerializer
 from reviews.models import Category, Comment, Genre, Review, Title
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
-from .permissions import IsAdmin, IsAuthorOrReadOnly, IsModerator
+from .permissions import IsAdmin, IsAuthorOrReadOnly
 from .serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -156,16 +154,32 @@ class TokenViewSet(viewsets.ModelViewSet):
         return Response({'token': str(token)}, status=status.HTTP_200_OK)
 
 
-class TitlesViewSet(ModelViewSet):
-    """Получить список всех объектов."""
+class TitlesViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
-    serializer_class = TitleReadSerializer
     filterset_class = TitleFilter
+    filter_backends = [rest_framework.DjangoFilterBackend]
+
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_serializer_class(self):
-        if self.request.method in ('PATCH', 'POST'):
+        if self.action in ['create', 'partial_update', 'update']:
             return TitleChangeSerializer
         return TitleReadSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAdmin]
+        return [permission() for permission in permission_classes]
+
+    def update(self, request, *args, **kwargs):
+        if request.method == 'PUT':
+            return Response(
+                {"detail": "Метод PUT не разрешен."},
+                status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
+        return super().update(request, *args, **kwargs)
 
 
 class CategoryViewSet(BasicActionsViewSet):
