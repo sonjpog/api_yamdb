@@ -12,39 +12,25 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'first_name', 'last_name', 'username', 'bio', 'email', 'role'
-        )
+            'first_name', 'last_name', 'username', 'bio', 'email', 'role')
+        extra_kwargs = {'email': {'required': True}}
 
-        def validate_username(self, value):
-            if value == 'me':
-                raise serializers.ValidationError(
-                    "Нельзя использовать 'me' в качестве username.")
-            return value
+    def validate_username(self, value):
+        if value == 'me':
+            raise serializers.ValidationError(
+                'Нельзя использовать "me" в качестве username.')
+        return value
 
-        def create(self, validated_data):
-            confirmation_code = str(random.randint(100000, 999999))
-            user = User(**validated_data)
-            user.confirmation_code = confirmation_code
-            user.save()
-            send_mail(
-                str({confirmation_code}),
-                [validated_data['email']],
-                fail_silently=False,
-            )
-            return user
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                'Адрес электронной почты уже существует.')
+        return value
 
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     confirmation_code = serializers.CharField(required=True)
-
-    def validate(self, data):
-        user = User.objects.filter(username=data['username']).first()
-        if user is None:
-            raise serializers.ValidationError('Пользователь не найден.')
-        if user.confirmation_code != data['confirmation_code']:
-            raise serializers.ValidationError('Неверный код подтверждения.')
-        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -89,7 +75,7 @@ class TitleChangeSerializer(serializers.ModelSerializer):
         fields = '__all__'
         model = Title
 
-        
+
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
