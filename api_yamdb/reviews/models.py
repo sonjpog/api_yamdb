@@ -131,9 +131,19 @@ class Review(models.Model):
         auto_now_add=True,
         db_index=True
     )
-    score = models.IntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(10)],
-        verbose_name='Оценка'
+    score = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(constants.MIN_VALUE_VALIDATOR),
+            MaxValueValidator(constants.MAX_VALUE_VALIDATOR)
+        ],
+        verbose_name='Оценка',
+        help_text=(
+            'Введите число от {min_value} до {max_value}, где {min_value} - '
+            'минимально допустимое значение, {max_value} - максимально '
+            'допустимое значение.'.format(
+                min_value=constants.MIN_VALUE_VALIDATOR,
+                max_value=constants.MAX_VALUE_VALIDATOR)
+        )
     )
 
     class Meta:

@@ -22,7 +22,7 @@ from api.serializers import UserSerializer, TokenSerializer
 from reviews.models import Category, Comment, Genre, Review, Title
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
-from .permissions import IsAdmin, IsAuthorOrReadOnly
+from .permissions import IsAdmin, IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -158,6 +158,7 @@ class TitlesViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     filterset_class = TitleFilter
     filter_backends = [rest_framework.DjangoFilterBackend]
+    permission_classes = [IsAdminOrReadOnly]
 
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
@@ -165,21 +166,6 @@ class TitlesViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'partial_update', 'update']:
             return TitleChangeSerializer
         return TitleReadSerializer
-
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsAdmin]
-        return [permission() for permission in permission_classes]
-
-    def update(self, request, *args, **kwargs):
-        if request.method == 'PUT':
-            return Response(
-                {"detail": "Метод PUT не разрешен."},
-                status=status.HTTP_405_METHOD_NOT_ALLOWED
-            )
-        return super().update(request, *args, **kwargs)
 
 
 class CategoryViewSet(BasicActionsViewSet):
@@ -189,11 +175,7 @@ class CategoryViewSet(BasicActionsViewSet):
     filter_backends = (SearchFilter, )
     search_fields = ('name', )
     lookup_field = 'slug'
-
-    def get_permissions(self):
-        if self.request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
-            self.permission_classes = [IsAdmin]
-        return super().get_permissions()
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class GenreViewSet(BasicActionsViewSet):
@@ -203,28 +185,18 @@ class GenreViewSet(BasicActionsViewSet):
     filter_backends = (SearchFilter,)
     search_fields = ('name', )
     lookup_field = 'slug'
-
-    def get_permissions(self):
-        if self.request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
-            self.permission_classes = [IsAdmin]
-        return super().get_permissions()
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Создание отзывов."""
     serializer_class = ReviewSerializer
-
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsAuthenticatedOrReadOnly,
-                                  IsAuthorOrReadOnly]
-        return [permission() for permission in permission_classes]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head']
 
     def get_queryset(self):
-        title_id = self.kwargs.get('title_id')
-        return Review.objects.filter(title=title_id)
+        title = self.get_title()
+        return Review.objects.filter(title=title)
 
     def get_title(self):
         title_id = self.kwargs.get('title_id')
@@ -232,57 +204,30 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         title = self.get_title()
-        if Review.objects.filter(title=title,
-                                 author=self.request.user).exists():
-            raise ValidationError("На одно произведение пользователь",
-                                  " может оставить только один отзыв.")
+        if Review.objects.filter(
+                title=title, author=self.request.user).exists():
+            raise ValidationError(
+                "На одно произведение пользователь может оставить "
+                "только один отзыв."
+            )
         serializer.save(author=self.request.user, title=title)
-
-    def update(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance,
-                                         data=request.data,
-                                         partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if instance.author != request.user and not (
-            request.user.is_staff or request.user.role in [
-                'moderator',
-                'admin']):
-            raise PermissionDenied("У вас нет прав на удаление этого отзыва.")
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Создание комментариев."""
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
-
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsAuthenticatedOrReadOnly,
-                                  IsAuthorOrReadOnly]
-        return [permission() for permission in permission_classes]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_queryset(self):
+        review = self.get_review()
+        return review.comments.all()
+
+    def get_review(self):
+        title_id = self.kwargs.get('title_id')
         review_id = self.kwargs.get('review_id')
-        return Comment.objects.filter(review_id=review_id)
+        return get_object_or_404(Review, title_id=title_id, id=review_id)
 
     def perform_create(self, serializer):
-        review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
+        review = self.get_review()
         serializer.save(author=self.request.user, review=review)
-
-    def update(self, request, *args, **kwargs):
-        if request.method == 'PUT':
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        return super().update(request, *args, **kwargs)

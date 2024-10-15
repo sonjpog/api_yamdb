@@ -1,5 +1,6 @@
 from django.db.models import Avg
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title
@@ -110,6 +111,21 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
         read_only_fields = ('author',)
+
+    def validate(self, data):
+        request = self.context.get('request')
+        if request and request.method == 'POST':
+            title_id = request.parser_context['kwargs']['title_id']
+            title = get_object_or_404(Title, pk=title_id)
+            if Review.objects.filter(
+                title=title,
+                author=request.user
+            ).exists():
+                raise serializers.ValidationError(
+                    "На одно произведение пользователь может оставить "
+                    "только один отзыв."
+                )
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
