@@ -1,6 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+from django.utils.crypto import get_random_string
 from rest_framework import serializers
+from rest_framework.exceptions import NotFound
+
 
 from reviews.models import Category, Comment, Genre, Review, Title
 from reviews.constants import USERNAME_ME
@@ -29,10 +33,32 @@ class UserSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate(self, attrs):
+        email = attrs.get('email')
+        username = attrs.get('username')
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
+            if user.username != username:
+                raise serializers.ValidationError()
+        return attrs
+
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     confirmation_code = serializers.CharField(required=True)
+
+    def validate(self, data):
+        username = data.get('username')
+        confirmation_code = data.get('confirmation_code')
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            raise NotFound({'error': 'Пользователь не найден.'})
+        if user.confirmation_code != confirmation_code:
+            raise serializers.ValidationError(
+                {'error': 'Неверный код подтверждения.'})
+        data['user'] = user
+        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):

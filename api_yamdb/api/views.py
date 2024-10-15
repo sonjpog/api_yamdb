@@ -7,13 +7,14 @@ from django.utils.crypto import get_random_string
 from django_filters import rest_framework
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import (MethodNotAllowed, ValidationError)
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.views import APIView
 from reviews.models import Category, Genre, Review, Title
 
 from .filters import TitleFilter
@@ -22,6 +23,7 @@ from .permissions import IsAdmin, IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer,
                           TitleChangeSerializer, TitleReadSerializer)
+from api_yamdb.settings import DEFAULT_FROM_EMAIL
 
 User = get_user_model()
 
@@ -34,32 +36,12 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdmin]
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     search_fields = ('username', 'email', 'bio', 'first_name', 'last_name',)
-
-    def create(self, request):
-        serializer = UserSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def retrieve(self, request, pk):
-        user = get_object_or_404(User, username=pk)
-        serializer = UserSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def partial_update(self, request, pk):
-        user = get_object_or_404(User, username=pk)
-        serializer = UserSerializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def destroy(self, request, pk):
-        user = get_object_or_404(User, username=pk)
-        user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    lookup_field = 'username'
 
     def update(self, request, *args, **kwargs):
-        raise MethodNotAllowed(method='PUT')
+        if request.method == 'PUT':
+            raise MethodNotAllowed(method='PUT')
+        return super().update(request, *args, **kwargs)
 
     @action(methods=['patch', 'get'], detail=False,
             permission_classes=[IsAuthenticated])
@@ -75,22 +57,24 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class SignupViewSet(viewsets.ModelViewSet):
+class SignupView(APIView):
     """Регистрация пользователей."""
 
     permission_classes = [AllowAny]
 
-    def create(self, request):
+    def post(self, request):
         email = request.data.get('email')
         username = request.data.get('username')
-        if User.objects.filter(email=email).exists():
-            if not User.objects.filter(username=username).exists():
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user:
+            if existing_user.username == username:
+                return Response({'email': existing_user.email,
+                                 'username': existing_user.username},
+                                status=status.HTTP_200_OK)
+            else:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
-            user = User.objects.get(email=email)
-            return Response({'email': user.email, 'username': user.username},
-                            status=status.HTTP_200_OK)
         serializer = UserSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
             user = serializer.save()
             confirmation_code = get_random_string(length=6)
             user.confirmation_code = confirmation_code
@@ -98,7 +82,7 @@ class SignupViewSet(viewsets.ModelViewSet):
             send_mail(
                 'Код подтверждения',
                 f'Ваш код подтверждения: {confirmation_code}',
-                'from@example.com',
+                DEFAULT_FROM_EMAIL,
                 [user.email],
                 fail_silently=False,
             )
@@ -115,16 +99,7 @@ class TokenViewSet(viewsets.ModelViewSet):
     def create(self, request):
         serializer = TokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data['username']
-        confirmation_code = serializer.validated_data['confirmation_code']
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            return Response({'error': 'Пользователь не найден.'},
-                            status=status.HTTP_404_NOT_FOUND)
-        if user.confirmation_code != confirmation_code:
-            return Response({'error': 'Неверный код подтверждения.'},
-                            status=status.HTTP_400_BAD_REQUEST)
+        user = serializer.validated_data['user']
         token = AccessToken.for_user(user)
         return Response({'token': str(token)}, status=status.HTTP_200_OK)
 
