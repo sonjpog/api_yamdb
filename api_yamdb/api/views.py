@@ -1,42 +1,34 @@
+from api.serializers import TokenSerializer, UserSerializer
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-from django.utils.crypto import get_random_string
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from django.utils.crypto import get_random_string
 from django_filters import rest_framework
-from rest_framework import status, viewsets
-from rest_framework.exceptions import ValidationError, PermissionDenied
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import (MethodNotAllowed, ValidationError)
 from rest_framework.filters import SearchFilter
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework.permissions import (
-    AllowAny,
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly
-)
-from rest_framework.decorators import action
-from rest_framework import filters
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.exceptions import MethodNotAllowed
+from reviews.models import Category, Genre, Review, Title
 
-from api.serializers import UserSerializer, TokenSerializer
-from reviews.models import Category, Comment, Genre, Review, Title
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsAuthorOrReadOnly
-from .serializers import (
-    CategorySerializer,
-    CommentSerializer,
-    GenreSerializer,
-    ReviewSerializer,
-    TitleReadSerializer,
-    TitleChangeSerializer,
-)
+from .serializers import (CategorySerializer, CommentSerializer,
+                          GenreSerializer, ReviewSerializer,
+                          TitleChangeSerializer, TitleReadSerializer)
 
 User = get_user_model()
 
 
 class UserViewSet(viewsets.ModelViewSet):
     """CRUD операции."""
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAdmin]
@@ -85,6 +77,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class SignupViewSet(viewsets.ModelViewSet):
     """Регистрация пользователей."""
+
     permission_classes = [AllowAny]
 
     def create(self, request):
@@ -114,27 +107,9 @@ class SignupViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserProfileView(viewsets.ModelViewSet):
-    """Профиль пользователя."""
-    permission_classes = [IsAuthenticated]
-
-    def retrieve(self, request):
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def partial_update(self, request):
-        serializer = UserSerializer(
-            request.user,
-            data=request.data,
-            partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 class TokenViewSet(viewsets.ModelViewSet):
     """Выдача токенов."""
+
     permission_classes = [AllowAny]
 
     def create(self, request):
@@ -155,11 +130,10 @@ class TokenViewSet(viewsets.ModelViewSet):
 
 
 class TitlesViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
+    queryset = Title.objects.annotate(rating=Avg('reviews__score'))
     filterset_class = TitleFilter
     filter_backends = [rest_framework.DjangoFilterBackend]
     permission_classes = [IsAdminOrReadOnly]
-
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_serializer_class(self):
@@ -170,6 +144,7 @@ class TitlesViewSet(viewsets.ModelViewSet):
 
 class CategoryViewSet(BasicActionsViewSet):
     """Получить список всех категорий."""
+
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     filter_backends = (SearchFilter, )
@@ -180,6 +155,7 @@ class CategoryViewSet(BasicActionsViewSet):
 
 class GenreViewSet(BasicActionsViewSet):
     """Получить список всех жанров."""
+
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     filter_backends = (SearchFilter,)
@@ -190,6 +166,7 @@ class GenreViewSet(BasicActionsViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Создание отзывов."""
+
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
     http_method_names = ['get', 'post', 'patch', 'delete', 'head']
@@ -215,6 +192,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Создание комментариев."""
+
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
     http_method_names = ['get', 'post', 'patch', 'delete']

@@ -8,7 +8,6 @@ from api.views import (CategoryViewSet,
                        SignupViewSet,
                        TitlesViewSet,
                        TokenViewSet,
-                       UserProfileView,
                        UserViewSet,
                        )
 
@@ -34,6 +33,4 @@ router_v1.register(
 
 urlpatterns = [
     path('v1/', include(router_v1.urls)),
-    path('v1/users/me/', UserProfileView.as_view({
-        'get': 'retrieve', 'patch': 'partial_update'}), name='profile'),
 ]

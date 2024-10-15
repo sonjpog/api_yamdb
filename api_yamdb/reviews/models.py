@@ -4,19 +4,38 @@ from django.db import models
 
 from . import constants, validators
 
-ROLES = [
-    ('user', 'User'),
-    ('moderator', 'Moderator'),
-    ('admin', 'Admin')
-]
-
 
 class User(AbstractUser):
     """Модель пользователя."""
-    confirmation_code = models.CharField(max_length=6, blank=True, null=True)
-    role = models.CharField(max_length=constants.MAX_NAME_LENGHT,
-                            choices=ROLES, default='user')
-    bio = models.TextField(constants.MAX_FIELD_LENGTH, blank=True)
+
+    confirmation_code = models.CharField(max_length=constants.MAX_CODE_LENGHT,
+                                         blank=True, null=True)
+    role = models.CharField(
+        max_length=constants.MAX_NAME_LENGHT,
+        choices=[(constants.ADMIN, 'Admin'),
+                 (constants.MODERATOR, 'Moderator'),
+                 (constants.USER, 'User')],
+        default=constants.USER
+    )
+    bio = models.TextField(blank=True)
+    email = models.EmailField(unique=True)
+    username = models.CharField(
+        max_length=constants.MAX_NAME_LENGHT,
+        unique=True,
+        validators=[validators.validate_username],
+    )
+
+    @property
+    def is_admin(self):
+        return (
+            self.role == constants.ADMIN
+            or self.is_superuser
+            or self.is_staff
+        )
+
+    @property
+    def is_moderator(self):
+        return self.role == constants.MODERATOR
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -28,12 +47,12 @@ class User(AbstractUser):
 
 class Genre(models.Model):
     """Модель для Жанров."""
+
     name = models.CharField(
         max_length=constants.MAX_FIELD_LENGTH,
         verbose_name='Название жанра'
     )
     slug = models.SlugField(
-        max_length=constants.MAX_SLUG_LENGTH,
         unique=True,
         verbose_name='URL-идентификатор'
     )
@@ -76,7 +95,7 @@ class Title(models.Model):
         help_text='Введите название произведения'
     )
 
-    year = models.PositiveIntegerField(
+    year = models.IntegerField(
         verbose_name='Год выпуска',
         help_text='Год выхода произведения',
         validators=[validators.validate_year]
@@ -165,6 +184,7 @@ class Review(models.Model):
 
 class Comment(models.Model):
     """Модель для Комментариев."""
+
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
@@ -187,4 +207,4 @@ class Comment(models.Model):
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
-        return self.text[:20]
+        return self.text[:constants.MAX_NAME_LENGHT]

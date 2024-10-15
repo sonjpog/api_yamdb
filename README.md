@@ -39,9 +39,55 @@ python3 manage.py migrate
 ```
 python3 manage.py runserver
 ```
-### Документация API 
+### Примеры запросов к API:
+#### Регистрация нового пользователя: 
 
-После запуска сервера будет доступна документация к api по адресу: http://127.0.0.1:8000/redoc/
+POST запрос http://{ip-адрес}/api/v1/auth/signup/
+
+```
+{
+    "email": "user@example.com",
+    "username": "user"
+}
+```
+
+Пример ответа:
+```
+{
+    "email": "user@example.com",
+    "username": "user"
+}
+```
+
+#### Добавление жанра: 
+
+POST запрос http://{ip-адрес}/api/v1/genres/
+
+```
+{
+    "name": "Комедия",
+    "slug": "comedy"
+}
+```
+
+Пример ответа:
+```
+{
+    "name": "Комедия",
+    "slug": "comedy"
+}
+```
+
+#### Получение списка всех жанров: 
+
+GET запрос http://{ip-адрес}/api/v1/genres/
+
+Пример ответа:
+```
+{ "count": 1, "next": null, "previous": null, "results": [ { "name": "Комедия", "slug": "comedies" }, { "name": "Комедия", "slug": "comedy" } ] }
+```
+
+После запуска сервера будет доступна подробная документация к api по адресу: http://127.0.0.1:8000/redoc/
 
 
 Авторы: 

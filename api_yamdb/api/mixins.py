@@ -8,7 +8,7 @@ class BasicActionsViewSet(
     viewsets.GenericViewSet
 ):
     """
-    Кастомный ViewSet, предоставляющий действия для создания, 
+    Кастомный ViewSet, предоставляющий действия для создания,
     получения списка и удаления объектов.
 
     Доступные действия:
@@ -16,4 +16,3 @@ class BasicActionsViewSet(
     - list (GET): Получение списка объектов
     - destroy (DELETE): Удаление объекта
     """
-    pass
