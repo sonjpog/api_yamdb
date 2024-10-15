@@ -5,9 +5,18 @@ from .models import Category, Comment, Genre, Review, Title, User
 
 from reviews.models import User
 
-UserAdmin.fieldsets += (
-    ('Extra Fields', {'fields': ('role',)}),
-)
+
+class UserAdmin(admin.ModelAdmin):
+    fieldsets = (
+        (None, {'fields': ('username', 'email', 'first_name',
+                           'last_name', 'bio')}),
+        ('Extra Fields', {'fields': ('role',)}),
+    )
+    list_display = ('username', 'email', 'first_name',
+                    'last_name', 'role', 'bio')
+
+    list_editable = ('role',)
+
 
 admin.site.register(User, UserAdmin)
 
@@ -31,7 +40,7 @@ class CommentAdmin(admin.ModelAdmin):
         'author',
         'pub_date',
     )
-    search_fields = ('review',)
+    search_fields = ('review__title',)
     list_filter = ('review',)
     empty_value_display = '-пусто-'
 
@@ -67,23 +76,12 @@ class TitleAdmin(admin.ModelAdmin):
         'year',
         'category',
         'description',
+        'get_genres',
     )
     search_fields = ('name',)
-    list_filter = ('name',)
+    list_filter = ('category',)
+    list_editable = ('category',)
     empty_value_display = '-пусто-'
 
-
-# @admin.register(User)
-# class UserAdmin(admin.ModelAdmin):
-#     list_display = (
-#         'username',
-#         'email',
-#         'role',
-#         'bio',
-#         'first_name',
-#         'last_name',
-#         'confirmation_code',
-#     )
-#     search_fields = ('username', 'role',)
-#     list_filter = ('username',)
-#     empty_value_display = '-пусто-'
+    def get_genres(self, obj):
+        return ', '.join(genre.name for genre in obj.genres.all())

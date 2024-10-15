@@ -16,4 +16,3 @@ class BasicActionsViewSet(
     - list (GET): Получение списка объектов
     - destroy (DELETE): Удаление объекта
     """
-    pass
