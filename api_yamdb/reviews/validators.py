@@ -17,9 +17,9 @@ def validate_year(value):
 
 
 def validate_username(username):
-    if username.lower() in FORBIDDEN_NAMES:
+    if username == 'me':
         raise ValidationError(
-            'Зарезервированный логин, нельзя использлвать'
+            'Зарезервированный логин, нельзя использовать'
         )
     if not re.match(REGULAR_CHECK_LOGIN_VALID, username):
         raise ValidationError(

@@ -1,13 +1,11 @@
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from django.utils.crypto import get_random_string
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
 
-
-from reviews.models import Category, Comment, Genre, Review, Title
 from reviews.constants import USERNAME_ME
+from reviews.models import Category, Comment, Genre, Review, Title
+
 
 User = get_user_model()
 
@@ -76,7 +74,7 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class TitleReadSerializer(serializers.ModelSerializer):
-    rating = serializers.FloatField(read_only=True)
+    rating = serializers.IntegerField(read_only=True, default=0)
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(
         read_only=True,
@@ -97,7 +95,8 @@ class TitleChangeSerializer(serializers.ModelSerializer):
         queryset=Genre.objects.all(),
         slug_field='slug',
         many=True,
-        required=True
+        required=True,
+        allow_empty=False
     )
 
     class Meta:
@@ -110,6 +109,12 @@ class TitleChangeSerializer(serializers.ModelSerializer):
             'description',
             'category',
         ]
+
+    def to_representation(self, instance):
+        """Переопределение вывода для использования TitleReadSerializer."""
+
+        read_serializer = TitleReadSerializer(instance)
+        return read_serializer.data
 
 
 class ReviewSerializer(serializers.ModelSerializer):

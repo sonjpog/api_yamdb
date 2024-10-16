@@ -7,16 +7,16 @@ from django.utils.crypto import get_random_string
 from django_filters import rest_framework
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
-from rest_framework.decorators import action, api_view
-from rest_framework.exceptions import (MethodNotAllowed, ValidationError)
+from rest_framework.decorators import action
+from rest_framework.exceptions import (MethodNotAllowed)
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.views import APIView
-from reviews.models import Category, Genre, Review, Title
 
+from reviews.models import Category, Genre, Review, Title
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsAuthorOrReadOnly
@@ -105,7 +105,8 @@ class TokenViewSet(viewsets.ModelViewSet):
 
 
 class TitlesViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.annotate(rating=Avg('reviews__score'))
+    queryset = Title.objects.annotate(
+        rating=Avg('reviews__score')).order_by('-rating')
     filterset_class = TitleFilter
     filter_backends = [rest_framework.DjangoFilterBackend]
     permission_classes = [IsAdminOrReadOnly]
