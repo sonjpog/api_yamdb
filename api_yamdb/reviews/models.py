@@ -132,23 +132,34 @@ class Title(models.Model):
         return self.name
 
 
-class Review(models.Model):
+class BaseContent(models.Model):
+    """Абстрактная модель для общего содержимого."""
+    author = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='%(class)ss',
+        verbose_name='Автор'
+    )
+    text = models.TextField(verbose_name='Текст')
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания',
+        db_index=True
+    )
+
+    class Meta:
+        abstract = True
+        ordering = ['pub_date']
+
+    def __str__(self):
+        return self.text[:constants.MAX_NAME_LENGHT]
+
+
+class Review(BaseContent):
     title = models.ForeignKey(
         'Title',
         on_delete=models.CASCADE,
         related_name='reviews'
-    )
-    text = models.TextField(verbose_name='Текст отзыва')
-    author = models.ForeignKey(
-        'User',
-        on_delete=models.CASCADE,
-        related_name='reviews',
-        verbose_name='Автор'
-    )
-    pub_date = models.DateTimeField(
-        'Дата добавления',
-        auto_now_add=True,
-        db_index=True
     )
     score = models.PositiveSmallIntegerField(
         validators=[
@@ -182,29 +193,15 @@ class Review(models.Model):
         )
 
 
-class Comment(models.Model):
+class Comment(BaseContent):
     """Модель для Комментариев."""
-
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
         related_name='comments',
         verbose_name='Отзыв'
     )
-    author = models.ForeignKey(
-        'User',
-        on_delete=models.CASCADE,
-        verbose_name='Автор'
-    )
-    text = models.TextField(verbose_name='Текст комментария')
-    pub_date = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Дата создания'
-    )
 
     class Meta:
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
-
-    def __str__(self):
-        return self.text[:constants.MAX_NAME_LENGHT]
