@@ -3,13 +3,12 @@ import re
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .constants import FORBIDDEN_NAMES, REGULAR_CHECK_LOGIN_VALID
+from .constants import REGULAR_CHECK_LOGIN_VALID
 
 
 def validate_year(value):
-    """
-    Валидатор для проверки того, что год не из будущего.
-    """
+    """Валидатор для проверки того, что год не из будущего."""
+
     current_year = timezone.now().year
     if value > current_year:
         raise ValidationError(

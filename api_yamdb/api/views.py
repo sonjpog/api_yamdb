@@ -15,7 +15,6 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.views import APIView
 
-from reviews.models import Category, Genre, Review, Title
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsAuthorOrReadOnly
@@ -23,6 +22,7 @@ from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer,
                           TitleChangeSerializer, TitleReadSerializer)
 from api_yamdb.settings import DEFAULT_FROM_EMAIL
+from reviews.models import Category, Genre, Review, Title
 
 User = get_user_model()
 
