@@ -192,7 +192,7 @@ class Review(BaseContent):
 
 class Comment(BaseContent):
     """Модель для Комментариев."""
-    
+
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,

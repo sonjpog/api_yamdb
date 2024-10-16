@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound
 
 from reviews.constants import USERNAME_ME
 from reviews.models import Category, Comment, Genre, Review, Title
