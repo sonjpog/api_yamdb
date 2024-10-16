@@ -12,7 +12,6 @@ MODERATOR = 'moderator'
 USER = 'user'
 USERNAME_ME = 'me'
 
-FORBIDDEN_NAMES = ('me',)
 REGULAR_CHECK_LOGIN_VALID = r'^[\w.@+-]+\Z'
 
 DATA_PATH = f'{settings.BASE_DIR}/static/data'

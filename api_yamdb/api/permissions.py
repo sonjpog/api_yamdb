@@ -36,11 +36,14 @@ class IsAdmin(permissions.BasePermission):
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     """
-    Разрешение, позволяющее только администраторам изменять данные,
-    а всем остальным - только читать.
+    Разрешение, позволяющее только администраторам изменять данные.
+
+    Всем остальным пользователям разрешен только доступ на чтение.
+    Это разрешение предназначено для контроля доступа к изменению данных
+    в зависимости от роли пользователя.
     """
 
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_authenticated and request.user.is_admin
+        return request.method in permissions.SAFE_METHODS or (
+            request.user.is_authenticated and request.user.is_admin
+        )

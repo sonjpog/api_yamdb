@@ -12,7 +12,6 @@ class TitleFilter(filters.FilterSet):
     - genre: точное совпадение по слагу жанра.
     - name: частичное совпадение по названию произведения.
     - year: точное совпадение по году выпуска.
-    - year__lt: произведения, выпущенные до указанного года.
     """
 
     category = filters.CharFilter(
@@ -29,11 +28,6 @@ class TitleFilter(filters.FilterSet):
         field_name='name',
         lookup_expr='icontains',
         help_text='Частичная фильтрация по названию произведения'
-    )
-    year__lt = filters.NumberFilter(
-        field_name='year',
-        lookup_expr='lt',
-        help_text='Фильтрация по годам меньше указанного'
     )
 
     class Meta:

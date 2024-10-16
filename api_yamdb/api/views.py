@@ -8,14 +8,12 @@ from django_filters import rest_framework
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import (MethodNotAllowed, ValidationError)
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.views import APIView
-from reviews.models import Category, Genre, Review, Title
 
 from .filters import TitleFilter
 from .mixins import BasicActionsViewSet
@@ -24,6 +22,7 @@ from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer,
                           TitleChangeSerializer, TitleReadSerializer)
 from api_yamdb.settings import DEFAULT_FROM_EMAIL
+from reviews.models import Category, Genre, Review, Title
 
 User = get_user_model()
 
@@ -37,11 +36,7 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     search_fields = ('username', 'email', 'bio', 'first_name', 'last_name',)
     lookup_field = 'username'
-
-    def update(self, request, *args, **kwargs):
-        if request.method == 'PUT':
-            raise MethodNotAllowed(method='PUT')
-        return super().update(request, *args, **kwargs)
+    http_method_names = 'get', 'post', 'head', 'patch', 'delete'
 
     @action(methods=['patch', 'get'], detail=False,
             permission_classes=[IsAuthenticated])
@@ -63,49 +58,45 @@ class SignupView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email')
-        username = request.data.get('username')
-        existing_user = User.objects.filter(email=email).first()
-        if existing_user:
-            if existing_user.username == username:
-                return Response({'email': existing_user.email,
-                                 'username': existing_user.username},
-                                status=status.HTTP_200_OK)
-            else:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
         serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            confirmation_code = get_random_string(length=6)
-            user.confirmation_code = confirmation_code
-            user.save()
-            send_mail(
-                'Код подтверждения',
-                f'Ваш код подтверждения: {confirmation_code}',
-                DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-            )
-            return Response({'email': user.email, 'username': user.username},
+        if User.objects.filter(email=request.data.get('email'),
+                               username=request.data.get('username')).exists():
+            return Response({'email': request.data.get('email'),
+                             'username': request.data.get('username')},
                             status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        confirmation_code = get_random_string(length=6)
+        user.confirmation_code = confirmation_code
+        user.save()
+        send_mail(
+            'Код подтверждения',
+            f'Ваш код подтверждения: {confirmation_code}',
+            DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+        return Response({'email': user.email, 'username': user.username},
+                        status=status.HTTP_200_OK)
 
 
-class TokenViewSet(viewsets.ModelViewSet):
+class TokenView(APIView):
     """Выдача токенов."""
 
     permission_classes = [AllowAny]
 
-    def create(self, request):
+    def post(self, request):
         serializer = TokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token = AccessToken.for_user(user)
-        return Response({'token': str(token)}, status=status.HTTP_200_OK)
+        if serializer.is_valid(raise_exception=True):
+            user = serializer.validated_data['user']
+            token = AccessToken.for_user(user)
+            return Response({'token': str(token)}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TitlesViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.annotate(rating=Avg('reviews__score'))
+    queryset = Title.objects.annotate(
+        rating=Avg('reviews__score')).order_by('-rating')
     filterset_class = TitleFilter
     filter_backends = [rest_framework.DjangoFilterBackend]
     permission_classes = [IsAdminOrReadOnly]
@@ -156,12 +147,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         title = self.get_title()
-        if Review.objects.filter(
-                title=title, author=self.request.user).exists():
-            raise ValidationError(
-                "На одно произведение пользователь может оставить "
-                "только один отзыв."
-            )
         serializer.save(author=self.request.user, title=title)
 
 

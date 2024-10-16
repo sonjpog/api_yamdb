@@ -3,8 +3,6 @@ from django.contrib.auth.admin import UserAdmin
 
 from .models import Category, Comment, Genre, Review, Title, User
 
-from reviews.models import User
-
 
 class UserAdmin(admin.ModelAdmin):
     fieldsets = (
