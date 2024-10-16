@@ -8,13 +8,17 @@ from . import constants, validators
 class User(AbstractUser):
     """Модель пользователя."""
 
-    confirmation_code = models.CharField(max_length=constants.MAX_CODE_LENGHT,
-                                         blank=True, null=True)
+    confirmation_code = models.CharField(
+        max_length=constants.MAX_CODE_LENGHT,
+        blank=True, null=True
+    )
     role = models.CharField(
         max_length=constants.MAX_NAME_LENGHT,
-        choices=[(constants.ADMIN, 'Admin'),
-                 (constants.MODERATOR, 'Moderator'),
-                 (constants.USER, 'User')],
+        choices=[
+            (constants.ADMIN, 'Admin'),
+            (constants.MODERATOR, 'Moderator'),
+            (constants.USER, 'User')
+        ],
         default=constants.USER
     )
     bio = models.TextField(blank=True)
@@ -35,25 +39,21 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
-        return (
-            self.role == constants.ADMIN
-            or self.is_staff
-        )
+        return self.role == constants.ADMIN or self.is_staff
 
     @property
     def is_moderator(self):
         return self.role == constants.MODERATOR
 
 
-class BaseModel(models.Model):
-    """Абстрактная модель для жанров и категорий."""
+class NamedSlugModel(models.Model):
+    """Абстрактная модель для объектов с названием и слагом."""
 
     name = models.CharField(
         max_length=constants.MAX_FIELD_LENGTH,
         verbose_name='Название'
     )
     slug = models.SlugField(
-        max_length=constants.MAX_SLUG_LENGTH,
         unique=True,
         verbose_name='URL-идентификатор'
     )
@@ -66,18 +66,18 @@ class BaseModel(models.Model):
         return self.name
 
 
-class Genre(BaseModel):
+class Genre(NamedSlugModel):
     """Модель для Жанров."""
 
-    class Meta(BaseModel.Meta):
+    class Meta(NamedSlugModel.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
 
-class Category(BaseModel):
+class Category(NamedSlugModel):
     """Модель для Категорий (типов) произведений."""
 
-    class Meta(BaseModel.Meta):
+    class Meta(NamedSlugModel.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
@@ -90,26 +90,22 @@ class Title(models.Model):
         verbose_name='Название',
         help_text='Введите название произведения'
     )
-
     year = models.SmallIntegerField(
         verbose_name='Год выпуска',
         help_text='Год выхода произведения',
         validators=[validators.validate_year]
     )
-
     genre = models.ManyToManyField(
         'Genre',
         related_name='titles',
         verbose_name='Жанр',
         help_text='Выберите жанры для произведения'
     )
-
     description = models.TextField(
         blank=True,
         verbose_name='Описание произведения',
         help_text='Введите описание произведения (необязательно)'
     )
-
     category = models.ForeignKey(
         'Category',
         on_delete=models.SET_NULL,
@@ -128,8 +124,8 @@ class Title(models.Model):
         return self.name
 
 
-class BaseContent(models.Model):
-    """Абстрактная модель для общего содержимого."""
+class TextModel(models.Model):
+    """Абстрактная модель для объектов с текстом и автором."""
 
     author = models.ForeignKey(
         'User',
@@ -152,7 +148,9 @@ class BaseContent(models.Model):
         return self.text[:constants.MAX_NAME_LENGHT]
 
 
-class Review(BaseContent):
+class Review(TextModel):
+    """Модель для отзывов."""
+
     title = models.ForeignKey(
         'Title',
         on_delete=models.CASCADE,
@@ -173,7 +171,7 @@ class Review(BaseContent):
         )
     )
 
-    class Meta:
+    class Meta(TextModel.Meta):
         constraints = [
             models.UniqueConstraint(
                 fields=['author', 'title'],
@@ -190,9 +188,9 @@ class Review(BaseContent):
         )
 
 
-class Comment(BaseContent):
-    """Модель для Комментариев."""
-    
+class Comment(TextModel):
+    """Модель для комментариев."""
+
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
@@ -200,6 +198,6 @@ class Comment(BaseContent):
         verbose_name='Отзыв'
     )
 
-    class Meta:
+    class Meta(TextModel.Meta):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'

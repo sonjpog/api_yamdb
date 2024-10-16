@@ -1,4 +1,4 @@
-from api.serializers import TokenSerializer, UserSerializer
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.db.models import Avg
@@ -21,7 +21,7 @@ from .permissions import IsAdmin, IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer,
                           TitleChangeSerializer, TitleReadSerializer)
-from api_yamdb.settings import DEFAULT_FROM_EMAIL
+from api.serializers import TokenSerializer, UserSerializer
 from reviews.models import Category, Genre, Review, Title
 
 User = get_user_model()
@@ -72,7 +72,7 @@ class SignupView(APIView):
         send_mail(
             'Код подтверждения',
             f'Ваш код подтверждения: {confirmation_code}',
-            DEFAULT_FROM_EMAIL,
+            settings.DEFAULT_FROM_EMAIL,
             [user.email],
             fail_silently=False,
         )
@@ -87,11 +87,10 @@ class TokenView(APIView):
 
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            user = serializer.validated_data['user']
-            token = AccessToken.for_user(user)
-            return Response({'token': str(token)}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token = AccessToken.for_user(user)
+        return Response({'token': str(token)}, status=status.HTTP_200_OK)
 
 
 class TitlesViewSet(viewsets.ModelViewSet):

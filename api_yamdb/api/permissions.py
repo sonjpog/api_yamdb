@@ -16,15 +16,6 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
         )
 
 
-class IsModerator(permissions.BasePermission):
-    """
-    Разрешение, позволяющее доступ только модераторам.
-    """
-
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.is_moderator
-
-
 class IsAdmin(permissions.BasePermission):
     """
     Разрешение, позволяющее доступ только администраторам.
