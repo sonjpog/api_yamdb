@@ -37,11 +37,7 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     search_fields = ('username', 'email', 'bio', 'first_name', 'last_name',)
     lookup_field = 'username'
-
-    def update(self, request, *args, **kwargs):
-        if request.method == 'PUT':
-            raise MethodNotAllowed(method='PUT')
-        return super().update(request, *args, **kwargs)
+    http_method_names = 'get', 'post', 'head', 'patch', 'delete'
 
     @action(methods=['patch', 'get'], detail=False,
             permission_classes=[IsAuthenticated])
@@ -63,45 +59,40 @@ class SignupView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email')
-        username = request.data.get('username')
-        existing_user = User.objects.filter(email=email).first()
-        if existing_user:
-            if existing_user.username == username:
-                return Response({'email': existing_user.email,
-                                 'username': existing_user.username},
-                                status=status.HTTP_200_OK)
-            else:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
         serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            confirmation_code = get_random_string(length=6)
-            user.confirmation_code = confirmation_code
-            user.save()
-            send_mail(
-                'Код подтверждения',
-                f'Ваш код подтверждения: {confirmation_code}',
-                DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-            )
-            return Response({'email': user.email, 'username': user.username},
+        if User.objects.filter(email=request.data.get('email'),
+                               username=request.data.get('username')).exists():
+            return Response({'email': request.data.get('email'),
+                             'username': request.data.get('username')},
                             status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        confirmation_code = get_random_string(length=6)
+        user.confirmation_code = confirmation_code
+        user.save()
+        send_mail(
+            'Код подтверждения',
+            f'Ваш код подтверждения: {confirmation_code}',
+            DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+        return Response({'email': user.email, 'username': user.username},
+                        status=status.HTTP_200_OK)
 
 
-class TokenViewSet(viewsets.ModelViewSet):
+class TokenView(APIView):
     """Выдача токенов."""
 
     permission_classes = [AllowAny]
 
-    def create(self, request):
+    def post(self, request):
         serializer = TokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token = AccessToken.for_user(user)
-        return Response({'token': str(token)}, status=status.HTTP_200_OK)
+        if serializer.is_valid(raise_exception=True):
+            user = serializer.validated_data['user']
+            token = AccessToken.for_user(user)
+            return Response({'token': str(token)}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TitlesViewSet(viewsets.ModelViewSet):
