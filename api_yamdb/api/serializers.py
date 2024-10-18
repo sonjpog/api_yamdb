@@ -1,14 +1,12 @@
 import re
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
-from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.utils.crypto import get_random_string
 from rest_framework import serializers
 
 from reviews.constants import USERNAME_ME
 from reviews.models import Category, Comment, Genre, Review, Title
-from django.conf import settings
 
 
 User = get_user_model()
