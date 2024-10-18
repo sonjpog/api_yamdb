@@ -3,7 +3,7 @@ import re
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .constants import REGULAR_CHECK_LOGIN_VALID
+from .constants import REGULAR_CHECK_LOGIN_VALID, USERNAME_ME
 
 
 def validate_year(value):
@@ -16,7 +16,7 @@ def validate_year(value):
 
 
 def validate_username(username):
-    if username == 'me':
+    if username == USERNAME_ME:
         raise ValidationError(
             'Зарезервированный логин, нельзя использовать'
         )

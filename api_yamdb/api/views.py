@@ -1,9 +1,8 @@
-from api.serializers import TokenSerializer, UserSerializer
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from django.utils.crypto import get_random_string
 from django_filters import rest_framework
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
@@ -21,7 +20,7 @@ from .permissions import IsAdmin, IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer,
                           TitleChangeSerializer, TitleReadSerializer)
-from api_yamdb.settings import DEFAULT_FROM_EMAIL
+from api.serializers import TokenSerializer, UserSerializer
 from reviews.models import Category, Genre, Review, Title
 
 User = get_user_model()
@@ -59,20 +58,12 @@ class SignupView(APIView):
 
     def post(self, request):
         serializer = UserSerializer(data=request.data)
-        if User.objects.filter(email=request.data.get('email'),
-                               username=request.data.get('username')).exists():
-            return Response({'email': request.data.get('email'),
-                             'username': request.data.get('username')},
-                            status=status.HTTP_200_OK)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        confirmation_code = get_random_string(length=6)
-        user.confirmation_code = confirmation_code
-        user.save()
         send_mail(
             'Код подтверждения',
-            f'Ваш код подтверждения: {confirmation_code}',
-            DEFAULT_FROM_EMAIL,
+            f'Ваш код подтверждения: {user.confirmation_code}',
+            settings.DEFAULT_FROM_EMAIL,
             [user.email],
             fail_silently=False,
         )
@@ -87,11 +78,10 @@ class TokenView(APIView):
 
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            user = serializer.validated_data['user']
-            token = AccessToken.for_user(user)
-            return Response({'token': str(token)}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token = AccessToken.for_user(user)
+        return Response({'token': str(token)}, status=status.HTTP_200_OK)
 
 
 class TitlesViewSet(viewsets.ModelViewSet):

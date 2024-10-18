@@ -1,5 +1,7 @@
+import re
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from django.utils.crypto import get_random_string
 from rest_framework import serializers
 
 from reviews.constants import USERNAME_ME
@@ -10,13 +12,23 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(required=True, validators=[])
+    email = serializers.EmailField(required=True, validators=[])
+
     class Meta:
         model = User
         fields = (
             'first_name', 'last_name', 'username', 'bio', 'email', 'role')
-        extra_kwargs = {'email': {'required': True}}
 
     def validate_username(self, value):
+        if not re.match(r'^[\w.@+-]+\Z', value):
+            raise serializers.ValidationError(
+                'Неверное имя пользователя'
+            )
+        if len(value) > 150:
+            raise serializers.ValidationError(
+                'Имя пользователя не должно превышать 150 символов.'
+            )
         if value == USERNAME_ME:
             raise serializers.ValidationError(
                 f'Нельзя использовать "{USERNAME_ME}" в качестве username.'
@@ -24,21 +36,38 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        if len(value) > 254:
             raise serializers.ValidationError(
-                'Адрес электронной почты уже существует.'
+                'Адрес почты не должен превышать 254 символа.'
             )
         return value
+
+    def create(self, validated_data):
+        user, created = User.objects.get_or_create(
+            email=validated_data['email'],
+            defaults=validated_data
+        )
+        if created:
+            confirmation_code = get_random_string(length=6)
+            user.confirmation_code = confirmation_code
+            user.save()
+        return user
 
     def validate(self, data):
         email = data.get('email')
         username = data.get('username')
-        existing_user = User.objects.filter(email=email).first()
+        existing_user = User.objects.filter(
+            email=email, username=username).first()
         if existing_user:
-            if existing_user.username != username:
-                raise serializers.ValidationError(
-                    'Пользователь с адресом электронной почты уже существует.'
-                )
+            return data
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError(
+                'Адрес электронной почты уже существует.'
+            )
+        if User.objects.filter(username=username).exists():
+            raise serializers.ValidationError(
+                'Имя пользователя уже существует.'
+            )
         return data
 
 
